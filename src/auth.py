@@ -1,9 +1,14 @@
 import os
 import base64
 import requests
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
-load_dotenv()
+# Load .env from repo root regardless of current working directory
+_env_path = find_dotenv(usecwd=True)
+if _env_path:
+    load_dotenv(_env_path)
+else:
+    load_dotenv()
 
 def get_access_token():
     client_id = os.getenv("EBAY_CLIENT_ID")
@@ -38,7 +43,20 @@ def get_access_token():
         )
     }
 
-    response = requests.post(token_url, headers=headers, data=data)
-    response.raise_for_status()
+    skip_ssl_verify = os.getenv("EBAY_SKIP_SSL_VERIFY", "false").lower() in {"1", "true", "yes"}
+
+    response = requests.post(
+        token_url,
+        headers=headers,
+        data=data,
+        verify=not skip_ssl_verify
+    )
+
+    if not response.ok:
+        # Include body to help diagnose invalid_client/invalid_grant
+        raise requests.HTTPError(
+            f"Token request failed ({response.status_code}): {response.text}",
+            response=response,
+        )
 
     return response.json()["access_token"]
