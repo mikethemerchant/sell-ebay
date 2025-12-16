@@ -10,6 +10,7 @@ venv/
 Thumbs.db
 
 # Credentials / tokens
+.env
 config/ebay_config.json
 config/*.key
 *.token
